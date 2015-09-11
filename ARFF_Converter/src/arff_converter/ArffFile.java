@@ -4,37 +4,14 @@
  * and open the template in the editor.
  */
 package arff_converter;
-import java.util.Scanner;
+import java.util.*;
+import java.text.*;
 
 /**
  *
  * @author Magpie
  */
 public class ArffFile {
-
-  abstract class Datum{
-
-  }
-
-  class Numeric extends Datum{
-
-  }
-  class Real extends Datum{
-
-  }
-  class Int extends Datum{
-
-  }
-  class Str extends Datum{
-
-  }
-  class Date extends Datum{
-
-  }
-
-  class Instance{
-    Object[] fields;
-  }
 
   public enum Datatype{
     NUMERIC, INT, REAL, NOMINAL, STRING, DATE
@@ -53,7 +30,7 @@ public class ArffFile {
     Attribute(String n, Datatype dt, String[] nominals){
       this(n,dt);
       numNominalValues=nominals.length;
-      System.arraycopy(nominals,0,nominalValueNames,0,numNominalValues);
+      nominalValueNames=nominals;
     }
 
     private String getDatatypeName(){
@@ -78,21 +55,26 @@ public class ArffFile {
   }
 
   // Fields
-  private String comments;
-  private String title;
+  private String comments="";
+  private String title="Random Data Picked Up Off the Floor";
   private Attribute[] attributes;
   private int numAttributes;
-  private Instance[] data;
+  private ArrayList<Object[]> data=new ArrayList<>();
   private int numInstances;
+  private String inputDataDelimiter="[\\s,]+";
 
   // constructors
-  public ArffFile(){
-    comments="";
-    title="Random Data Picked Up Off the Floor";
-  }
-  public ArffFile(String title){
-    comments="";
+  public ArffFile(){}
+  public ArffFile(String title, String inputfilename){
+    DateFormat dateFormat = new SimpleDateFormat("dd/MMM/yyyy HH:mm:ss");
+    Date date = new Date();
+    comments=" File created by \"<insert awesome name for this ARFF Converter program>\" "
+            +"\n on "+dateFormat.format(date)+" from file: "+inputfilename;
     this.title=title;
+  }
+
+  public void setInputDelimiter(String d){
+    inputDataDelimiter=d;
   }
 
   // outputHeader()
@@ -105,16 +87,21 @@ public class ArffFile {
       sb.append(s.next());
       sb.append(System.lineSeparator());
     }
+    sb.append('%');
     sb.append(System.lineSeparator());
     sb.append("@RELATION ");
     sb.append(title);
     sb.append(System.lineSeparator());
     for(int i=0;i<numAttributes;i++){
+      sb.append(System.lineSeparator());
       sb.append("@ATTRIBUTE ");
       sb.append(attributes[i].name);
       sb.append(' ');
       sb.append(attributes[i].getDatatypeName());
     }
+    sb.append(System.lineSeparator());
+    sb.append(System.lineSeparator());
+    sb.append("@DATA ");
     sb.append(System.lineSeparator());
     return sb.toString();
   }
@@ -122,12 +109,9 @@ public class ArffFile {
   // outputData()
   public String outputData(){
     StringBuilder sb=new StringBuilder();
-    sb.append(System.lineSeparator());
-    sb.append("@DATA ");
-    sb.append(System.lineSeparator());
-    for(int i=0;i<numInstances;i++){
+    for(int i=0;i<data.size();i++){
       for(int j=0;j<numAttributes;j++){
-        sb.append(this.data[i].fields[j]);
+        sb.append(this.data.get(i)[j]);
         if(j<numAttributes-1)sb.append(',');
       }
       sb.append(System.lineSeparator());
@@ -135,9 +119,47 @@ public class ArffFile {
     return sb.toString();
   }
 
+  // addInstance()
+  public void addInstance(String instanceString){
+    Scanner sc=new Scanner(instanceString);
+    sc.useDelimiter(inputDataDelimiter);
+    Object[] ob=new Object[numAttributes];
+    for(int i=0;i<numAttributes;i++){
+      switch(attributes[i].type){
+        case NUMERIC:
+        case REAL:    ob[i]=sc.nextDouble();
+                      break;
+        case INT:     ob[i]=sc.nextInt();
+                      break;
+        case STRING:
+        case NOMINAL:
+        case DATE:    if(sc.hasNext("\".*")){    // may need some work not sure if will handle getting rid of the first "
+                        sc.useDelimiter("\"");
+                        ob[i]="'"+sc.next()+"'";
+                        sc.useDelimiter(inputDataDelimiter);
+                      } else if(sc.hasNext("'.*")){
+                        sc.useDelimiter("'");
+                        ob[i]="'"+sc.next()+"'";
+                        sc.useDelimiter(inputDataDelimiter);
+                      } else
+                        ob[i]=sc.next();
+                      break;
+      }
+    }
+    data.add(ob);
+  }
+
+  // outputInstance()
+  //public String outputInstance(String inputInstance){
+  //  StringBuilder sb=new StringBuilder();
+
+
+  //  return sb.toString();
+  //}
+
   // addComment()
   public void addComment(String c){
-    comments+=System.lineSeparator()+c;
+    comments+=System.lineSeparator()+" "+c;
   }
 
   // setTitle()
@@ -166,7 +188,7 @@ public class ArffFile {
     Attribute[] temp=new Attribute[numAttributes+1];
     if (numAttributes>0)
       System.arraycopy(attributes, 0, temp, 0, numAttributes);
-    temp[numAttributes]=new Attribute(name,Datatype.REAL,nominalNames);
+    temp[numAttributes]=new Attribute(name,Datatype.NOMINAL,nominalNames);
     numAttributes++;
     attributes=temp;
   }

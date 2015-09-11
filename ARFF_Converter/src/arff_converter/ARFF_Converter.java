@@ -25,14 +25,31 @@ public class ARFF_Converter {
     try {
       //URL url = new URL("http://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data");
       Scanner s = new Scanner(new File("C:/Users/Magpie/Downloads/WekaData/iristest.data"));
-      s.useDelimiter("\n");
       StringBuilder sb=new StringBuilder();
-      while (s.hasNext())
-      {
 
+      ArffFile arf=new ArffFile("Iris","iris.data");
+      arf.addComment("Blah blah blah this is the good old iris data");
+      arf.addComment("Just checking if this works");
+      arf.addAttribute("num1",ArffFile.Datatype.REAL);
+      arf.addAttribute("num2",ArffFile.Datatype.REAL);
+      arf.addAttribute("num3",ArffFile.Datatype.REAL);
+      arf.addAttribute("num4",ArffFile.Datatype.REAL);
+      arf.addNominalAttribute("class",new String[]{"Iris-setosa","Iris-versicolor","Iris-virginica"});
+
+      while(s.hasNext()){
+        arf.addInstance(s.nextLine());
       }
+
+      System.out.print(arf.outputHeader());
+      System.out.print(arf.outputData());
+
       // read from your scanner
     }
+
+
+
+
+
     catch(IOException ex) {
       System.err.println("IOException");
        // there was some connection problem, or the file did not exist on the server,
