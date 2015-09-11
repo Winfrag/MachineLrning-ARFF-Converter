@@ -24,10 +24,13 @@ public class ARFF_Converter {
 
     try {
       //URL url = new URL("http://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data");
-      File file=new File("C:/Users/Magpie/Downloads/WekaData/iristest.data");
+      String filename=getString("Enter filename to convert: ");
+      File file=new File(filename);
       Scanner scan = new Scanner(file);
 
-      ArffFile arf=new ArffFile("Iris","iris.data");
+      String title=filename.replaceFirst(".*\\\\+","").replaceFirst("\\.\\w{1,5}$","");
+      String path=filename.replaceFirst(title+"\\.\\w{1,5}$","");
+      ArffFile arf=new ArffFile(title,filename);
 //      arf.addComment("Blah blah blah this is the good old iris data");
 //      arf.addComment("Just checking if this works");
 //      arf.addAttribute("num1",ArffFile.Datatype.REAL);
@@ -45,7 +48,7 @@ public class ARFF_Converter {
       //    - if there are any " then they are for quoting strings.
       //    - if there are not any " and there are ' then they are for quoting strings.
       //    - if there is any whitespace besides linebreak,
-      //        then any whitespace is a delimiter.
+      //        then any whitespace is a delimiter unless there is ", "
       //    - the possible delimiters are , ; whitespace.
       //    - if there are no delimiters then the whole line is one attribute.
       //    - if there is both , and ; then the delimiter is both.
@@ -71,12 +74,14 @@ public class ARFF_Converter {
         qDelimiter="'";
 
       String mod=fl.replaceAll(qDelimiter+".*"+qDelimiter, ""); // don't test for delimiters within quotes
-      if(mod.indexOf(' ')>0 || mod.indexOf('\t')>0)
+      if(mod.contains(", "))
+        dDelimiter=", ";
+      else if(mod.indexOf(' ')>=0 || mod.indexOf('\t')>=0)
         dDelimiter="\\s+";
       else{
-        if(count(mod,',')>0)
+        if(count(mod,',')>=0)
           dDelimiter+=",";
-        if(count(mod,';')>0)
+        if(count(mod,';')>=0)
           dDelimiter+=";";
         dDelimiter="["+dDelimiter+"]";
       }
@@ -92,7 +97,7 @@ public class ARFF_Converter {
       boolean hasNames=true;
       int numFields=0;
       while(ts.hasNext()){
-        if(ts.hasNextDouble())
+        if(ts.hasNextDouble() || ts.hasNextInt())
           hasNames=false;
         ts.next();
         numFields++;
@@ -124,11 +129,12 @@ public class ARFF_Converter {
             System.out.print("No Attribute names found\nDo you want to enter them? (Y or N)"+
                  "\n(if N then \"attrib1\", \"attrib2\", etc.) ");
             char c=getChar();
-            if(c=='n' || c=='N')
+            if(c=='n' || c=='N'){
               for(int i=0;i<numFields;i++)
                 attNames[i]="attrib"+(i+1);
-            break;
+              break;
             }
+          }
           System.out.println(fl+"\n\nEnter a name for ");
           for(int i=0;i<numFields;i++){
             System.out.print("field "+(i+1)+": ");
@@ -181,15 +187,17 @@ public class ARFF_Converter {
         arf.addAttribute(attNames[i],type[i]);
 
       scan=new Scanner(file);
-      //int i=0;
+      if(hasNames)
+        scan.nextLine();
+
       while(scan.hasNext()){
-        //System.out.println("add line "+ ++i);
         arf.addInstance(scan.nextLine());
       }
 
-      BufferedWriter br = new BufferedWriter(new FileWriter("C:/Users/Magpie/Downloads/WekaData/test.arff"));
+      BufferedWriter br = new BufferedWriter(new FileWriter(path+title+".arff"));
       br.write(arf.output());
       br.close();
+      System.out.println("Output written to \""+path+title+".arff");
     }
 
 
@@ -212,6 +220,10 @@ public class ARFF_Converter {
       total++;
     }
     return total;
+  }
+	static String getString(String p) throws IOException{
+    System.out.print(p);
+    return getString();
   }
 	static String getString() throws IOException{
 		String s=new BufferedReader(new InputStreamReader(System.in)).readLine();

@@ -111,8 +111,9 @@ public class ArffFile {
     for(int i=0;i<numAttributes;i++){
       sb.append(System.lineSeparator());
       sb.append("@ATTRIBUTE ");
+      sb.append('\'');
       sb.append(attributes[i].name);
-      sb.append(' ');
+      sb.append("' ");
       sb.append(attributes[i].getDatatypeString());
     }
     sb.append(System.lineSeparator());
@@ -127,9 +128,6 @@ public class ArffFile {
     StringBuilder sb=new StringBuilder();
     for (Object[] ob : data) {
       for (int j = 0; j<numAttributes; j++) {
-        if(attributes[j].type==Datatype.NOMINAL)
-          sb.append(attributes[j].nominalValueNames.get((Integer)ob[j]));
-        else
           sb.append(ob[j]);
         if(j<numAttributes-1)sb.append(',');
       }
@@ -183,14 +181,14 @@ public class ArffFile {
       if(attributes[a].type==Datatype.NOMINAL){
         for(Object[] inst: data){
           String s=(String)inst[a];
-          int i=attributes[a].nominalValueNames.indexOf(s);
-          if(i<0){
-            i=attributes[a].nominalValueNames.size();
-            if(s.matches("\\d+"))//integer
-              s="class-"+s;
-            attributes[a].nominalValueNames.add(s);
+          if(s.matches("\\d+")){//integer
+            s="class-"+s;
+            inst[a]=s;
           }
-          inst[a]=i;
+          if(s.compareTo("?")!=0){
+            if(attributes[a].nominalValueNames.indexOf(s)<0)
+              attributes[a].nominalValueNames.add(s);
+          }
         }
       }
     }
