@@ -4,7 +4,7 @@
  */
 package arff_converter;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Scanner;
@@ -23,15 +23,17 @@ public class ARFF_Converter {
     public static void main(String[] args) {
         // TODO code application logic here
 try {
-   URL url = new URL("http://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data");
-   Scanner s = new Scanner(url.openStream());
+   //URL url = new URL("http://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data");
+   Scanner s = new Scanner(new File("C:/Users/Magpie/Downloads/WekaData/iristest.data"));
+   s.useDelimiter("[\n,]+");
    while (s.hasNext())
-   {    
-   System.out.println(s.next());
+   {
+   System.out.print("<"+s.next()+"> ");
    }
    // read from your scanner
 }
 catch(IOException ex) {
+  System.err.println("IOException");
    // there was some connection problem, or the file did not exist on the server,
    // or your URL was not in the right format.
    // think about what to do now, and put it here.
@@ -40,11 +42,11 @@ catch(IOException ex) {
 
 System.out.println();
     }
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
 }
