@@ -23,8 +23,8 @@ public class ARFF_Converter {
   public static void main(String[] args) {
 
     try {
-      //URL url = new URL("http://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data");
-      Scanner s = new Scanner(new File("C:/Users/Magpie/Downloads/WekaData/iristest.data"));
+      URL url = new URL("http://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data");
+      Scanner s = new Scanner(url.openStream());
       StringBuilder sb=new StringBuilder();
 
       ArffFile arf=new ArffFile("Iris","iris.data");
