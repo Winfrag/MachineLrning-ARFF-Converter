@@ -145,27 +145,11 @@ public class ArffFile {
     {title=t;}
 
   //
-  public void addRealAttribute(String name){
+  public void addAttribute(String name, Datatype dt){
     Attribute[] temp=new Attribute[numAttributes+1];
     if (numAttributes>0)
       System.arraycopy(attributes, 0, temp, 0, numAttributes);
-    temp[numAttributes]=new Attribute(name,Datatype.REAL);
-    numAttributes++;
-    attributes=temp;
-  }
-  public void addIntegerAttribute(String name){
-    Attribute[] temp=new Attribute[numAttributes+1];
-    if (numAttributes>0)
-      System.arraycopy(attributes, 0, temp, 0, numAttributes);
-    temp[numAttributes]=new Attribute(name,Datatype.INT);
-    numAttributes++;
-    attributes=temp;
-  }
-  public void addStringAttribute(String name){
-    Attribute[] temp=new Attribute[numAttributes+1];
-    if (numAttributes>0)
-      System.arraycopy(attributes, 0, temp, 0, numAttributes);
-    temp[numAttributes]=new Attribute(name,Datatype.STRING);
+    temp[numAttributes]=new Attribute(name,dt);
     numAttributes++;
     attributes=temp;
   }
