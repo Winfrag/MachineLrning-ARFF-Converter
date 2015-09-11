@@ -14,35 +14,37 @@ import java.text.*;
 public class ArffFile {
 
   public enum Datatype{
-    NUMERIC, INT, REAL, NOMINAL, STRING, DATE
+    NUMERIC, INT, REAL, NOMINAL, STRING, DATE, UNKNOWN
   }
   private class Attribute{
     String name;
     Datatype type;
     String dateFormat;
-    String[] nominalValueNames;
+    ArrayList<String> nominalValueNames;
     int numNominalValues;
 
     Attribute(String n, Datatype dt){
       name=n;
       type=dt;
+      nominalValueNames=new ArrayList<>();
     }
     Attribute(String n, Datatype dt, String[] nominals){
       this(n,dt);
       numNominalValues=nominals.length;
-      nominalValueNames=nominals;
+      nominalValueNames.addAll(Arrays.asList(nominals));
     }
 
-    private String getDatatypeName(){
+    private String getDatatypeString(){
       switch(type){
         case NUMERIC: return "NUMERIC";
         case INT:     return "INTEGER";
         case REAL:    return "REAL";
         case NOMINAL: StringBuilder s=new StringBuilder();
                       s.append('{');
-                      for(int i=0;i<numNominalValues;i++){
-                        s.append(nominalValueNames[i]);
-                        if(i<numNominalValues-1)s.append(',');
+                      int n=nominalValueNames.size();
+                      for(int i=0;i<n;i++){
+                        s.append(nominalValueNames.get(i));
+                        if(i<n-1)s.append(',');
                       }
                       s.append('}');
                       return s.toString();
@@ -60,8 +62,8 @@ public class ArffFile {
   private Attribute[] attributes;
   private int numAttributes;
   private ArrayList<Object[]> data=new ArrayList<>();
-  private int numInstances;
-  private String inputDataDelimiter="[\\s,]+";
+  private String inputDataDelimiter=",";
+  private String inputQuoteDelimiter="\"";
 
   // constructors
   public ArffFile(){}
@@ -73,8 +75,22 @@ public class ArffFile {
     this.title=title;
   }
 
-  public void setInputDelimiter(String d){
+  public void setInputDelimiter(String d){ // , by default
     inputDataDelimiter=d;
+  }
+  public void setInputQuoteDelimiter(String d){ // " by default
+    inputQuoteDelimiter=d;
+  }
+
+  // output()
+  public String output(){
+
+    analyzeNominals();
+
+    StringBuilder sb=new StringBuilder();
+    sb.append(outputHeader());
+    sb.append(outputData());
+    return sb.toString();
   }
 
   // outputHeader()
@@ -97,7 +113,7 @@ public class ArffFile {
       sb.append("@ATTRIBUTE ");
       sb.append(attributes[i].name);
       sb.append(' ');
-      sb.append(attributes[i].getDatatypeName());
+      sb.append(attributes[i].getDatatypeString());
     }
     sb.append(System.lineSeparator());
     sb.append(System.lineSeparator());
@@ -109,9 +125,12 @@ public class ArffFile {
   // outputData()
   public String outputData(){
     StringBuilder sb=new StringBuilder();
-    for(int i=0;i<data.size();i++){
-      for(int j=0;j<numAttributes;j++){
-        sb.append(this.data.get(i)[j]);
+    for (Object[] ob : data) {
+      for (int j = 0; j<numAttributes; j++) {
+        if(attributes[j].type==Datatype.NOMINAL)
+          sb.append(attributes[j].nominalValueNames.get((Integer)ob[j]));
+        else
+          sb.append(ob[j]);
         if(j<numAttributes-1)sb.append(',');
       }
       sb.append(System.lineSeparator());
@@ -127,18 +146,28 @@ public class ArffFile {
     for(int i=0;i<numAttributes;i++){
       switch(attributes[i].type){
         case NUMERIC:
-        case REAL:    ob[i]=sc.nextDouble();
+        case REAL:    if(sc.hasNextDouble())
+                        ob[i]=sc.nextDouble();
+                      else{
+                        ob[i]="?";
+                        String s=sc.next();
+                        System.err.println("Data type mismatch, <"+s+"> should be a double");
+                      }
                       break;
-        case INT:     ob[i]=sc.nextInt();
+        case INT:     if(sc.hasNextInt())
+                        ob[i]=sc.nextInt();
+                      else{
+                        ob[i]="?";
+                        String s=sc.next();
+                        System.err.println("Data type mismatch, <"+s+"> should be an integer");
+                      }
                       break;
         case STRING:
         case NOMINAL:
-        case DATE:    if(sc.hasNext("\".*")){    // may need some work not sure if will handle getting rid of the first "
-                        sc.useDelimiter("\"");
-                        ob[i]="'"+sc.next()+"'";
-                        sc.useDelimiter(inputDataDelimiter);
-                      } else if(sc.hasNext("'.*")){
-                        sc.useDelimiter("'");
+        case DATE:
+        case UNKNOWN: if(sc.hasNext(inputQuoteDelimiter+".*")){ // Takes care of strings in single or double quotes,
+                        sc.useDelimiter(inputQuoteDelimiter);   // adds them back in with single quotes,
+                        sc.next(); //eat the ,"                 // maybe this is wrong (the single quotes)
                         ob[i]="'"+sc.next()+"'";
                         sc.useDelimiter(inputDataDelimiter);
                       } else
@@ -149,13 +178,23 @@ public class ArffFile {
     data.add(ob);
   }
 
-  // outputInstance()
-  //public String outputInstance(String inputInstance){
-  //  StringBuilder sb=new StringBuilder();
-
-
-  //  return sb.toString();
-  //}
+  private void analyzeNominals(){
+    for(int a=0;a<numAttributes;a++){
+      if(attributes[a].type==Datatype.NOMINAL){
+        for(Object[] inst: data){
+          String s=(String)inst[a];
+          int i=attributes[a].nominalValueNames.indexOf(s);
+          if(i<0){
+            i=attributes[a].nominalValueNames.size();
+            if(s.matches("\\d+"))//integer
+              s="class-"+s;
+            attributes[a].nominalValueNames.add(s);
+          }
+          inst[a]=i;
+        }
+      }
+    }
+  }
 
   // addComment()
   public void addComment(String c){
@@ -167,6 +206,14 @@ public class ArffFile {
     {title=t;}
 
   //
+  public void addAttribute(String name){
+    Attribute[] temp=new Attribute[numAttributes+1];
+    if (numAttributes>0)
+      System.arraycopy(attributes, 0, temp, 0, numAttributes);
+    temp[numAttributes]=new Attribute(name,Datatype.UNKNOWN);
+    numAttributes++;
+    attributes=temp;
+  }
   public void addAttribute(String name, Datatype dt){
     Attribute[] temp=new Attribute[numAttributes+1];
     if (numAttributes>0)
