@@ -64,6 +64,7 @@ public class ArffFile {
   private ArrayList<Object[]> data=new ArrayList<>();
   private String inputDataDelimiter=",";
   private String inputQuoteDelimiter="\"";
+  private boolean keepMissingDataLines=true;
 
   // constructors
   public ArffFile(){}
@@ -75,6 +76,9 @@ public class ArffFile {
     this.title=title;
   }
 
+  public void removeMissingDataLines(){
+    keepMissingDataLines=false;
+  }
   public void setInputDelimiter(String d){ // , by default
     inputDataDelimiter=d;
   }
@@ -141,6 +145,7 @@ public class ArffFile {
     Scanner sc=new Scanner(instanceString);
     sc.useDelimiter(inputDataDelimiter);
     Object[] ob=new Object[numAttributes];
+    boolean addInst=true;
     for(int i=0;i<numAttributes;i++){
       switch(attributes[i].type){
         case NUMERIC:
@@ -150,6 +155,7 @@ public class ArffFile {
                         ob[i]="?";
                         String s=sc.next();
                         System.err.println("Data type mismatch, <"+s+"> should be a double");
+                        addInst=false;
                       }
                       break;
         case INT:     if(sc.hasNextInt())
@@ -158,6 +164,7 @@ public class ArffFile {
                         ob[i]="?";
                         String s=sc.next();
                         System.err.println("Data type mismatch, <"+s+"> should be an integer");
+                        addInst=false;
                       }
                       break;
         case STRING:
@@ -170,10 +177,15 @@ public class ArffFile {
                         sc.useDelimiter(inputDataDelimiter);
                       } else
                         ob[i]=sc.next();
+                      if(((String)ob[i]).compareTo("?")==0)
+                        addInst=false;
                       break;
       }
     }
-    data.add(ob);
+    if(keepMissingDataLines || addInst)
+      data.add(ob);
+    else
+      System.out.println("Skipping line "+data.size()+"-ish because missing data");
   }
 
   private void analyzeNominals(){
@@ -181,10 +193,10 @@ public class ArffFile {
       if(attributes[a].type==Datatype.NOMINAL){
         for(Object[] inst: data){
           String s=(String)inst[a];
-          if(s.matches("\\d+")){//integer
-            s="class-"+s;
-            inst[a]=s;
-          }
+          //if(s.matches("\\d+")){//integer
+          //  s="class-"+s;
+          //  inst[a]=s;
+          //}
           if(s.compareTo("?")!=0){
             if(attributes[a].nominalValueNames.indexOf(s)<0)
               attributes[a].nominalValueNames.add(s);
